@@ -10,18 +10,18 @@ spring:
   cloud:
     gateway:
       globalcors:
-          corsConfigurations:
-            '[/**]':
-              allowedOrigins:
-                - "http://localhost:5173"
-                - "http://127.0.0.1:5173"
-              allowedHeaders: 
-                - "*"
-              allowedMethods:
-                - GET
-                - POST
-                - PUT
-                - DELETE
+        corsConfigurations:
+          "[/**]":
+            allowedOrigins:
+              - "http://localhost:5173"
+              - "http://127.0.0.1:5173"
+            allowedHeaders:
+              - "*"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
       discovery:
         locator:
           enabled: true
@@ -35,7 +35,13 @@ spring:
         - id: catalogo-service
           uri: lb://catalogo-service
           predicates:
-           - Path=/categoria/**,/producto/**
+            - Path=/categoria/**,/producto/**
+          filters:
+            - AuthFilter
+        - id: banner-service
+          uri: lb://banner-service
+          predicates:
+            - Path=/banner/**
           filters:
             - AuthFilter
         - id: mensaje-service
