@@ -29,196 +29,196 @@ import org.springframework.web.multipart.MultipartFile;
 @RestController
 @RequestMapping("/producto")
 public class ProductController {
-    private final String UPLOAD_DIR = "src/main/resources/public/imagenes";
+  private final String UPLOAD_DIR = "src/main/resources/public/imagenes";
 
-    @Autowired
-    private ProductService productoService;
+  @Autowired
+  private ProductService productoService;
 
-    @GetMapping()
-    public List<Product> listar() {
-        List<Product> productos = productoService.listar();
-        for (Product producto : productos) {
-            producto.setCategoria(producto.getCategoria());
-        }
-        return productos;
+  @GetMapping()
+  public List<Product> listar() {
+    List<Product> productos = productoService.listar();
+    for (Product producto : productos) {
+      producto.setCategoria(producto.getCategoria());
+    }
+    return productos;
+  }
+
+  @PostMapping()
+  public ResponseEntity<String> guardar(@ModelAttribute Product producto, @RequestParam("file") MultipartFile file) {
+
+    if (file.isEmpty()) {
+      System.err.println("No se ha proporcionado un archivo adjunto válido.");
+      return ResponseEntity.badRequest().build();
     }
 
-    @PostMapping()
-    public ResponseEntity<String> guardar(@ModelAttribute Product producto, @RequestParam("file") MultipartFile file) {
+    try {
+      String fileExtension = getFileExtension(file.getOriginalFilename());
+      if (!isValidImageExtension(fileExtension)) {
+        return ResponseEntity.badRequest().body("Solo se permiten archivos con extensiones .png, .jpg y .jpeg");
+      }
+      String filename = UUID.randomUUID().toString();
+      String newFileName = filename + fileExtension;
+      Path filePath = Path.of(UPLOAD_DIR, newFileName);
 
-        if (file.isEmpty()) {
-            System.err.println("No se ha proporcionado un archivo adjunto válido.");
-            return ResponseEntity.badRequest().build();
-        }
+      String baseUri = ServletUriComponentsBuilder.fromCurrentContextPath().build().toUriString();
 
-        try {
-            String fileExtension = getFileExtension(file.getOriginalFilename());
-            if (!isValidImageExtension(fileExtension)) {
-                return ResponseEntity.badRequest().body("Solo se permiten archivos con extensiones .png, .jpg y .jpeg");
-            }
-            String filename = UUID.randomUUID().toString();
-            String newFileName = filename + fileExtension;
-            Path filePath = Path.of(UPLOAD_DIR, newFileName);
+      Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
 
-            String baseUri = ServletUriComponentsBuilder.fromCurrentContextPath().build().toUriString();
+      String fileUrl = baseUri + "/imagenes/" + newFileName;
+      producto.setImagen(fileUrl);
+      producto.setCategoria(producto.getCategoria());
 
-            Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+      productoService.guardar(producto);
 
-            String fileUrl = baseUri + "/imagenes/" + newFileName;
-            producto.setImagen(fileUrl);
-            producto.setCategoria(producto.getCategoria());
+      return ResponseEntity.ok(fileUrl);
+    } catch (IOException e) {
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+    }
+  }
 
-            productoService.guardar(producto);
+  private boolean isValidImageExtension(String fileExtension) {
+    return fileExtension.equalsIgnoreCase(".png") ||
+        fileExtension.equalsIgnoreCase(".jpg") ||
+        fileExtension.equalsIgnoreCase(".jpeg");
+  }
 
-            return ResponseEntity.ok(fileUrl);
-        } catch (IOException e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
+  private String getFileExtension(String fileName) {
+    int dotIndex = fileName.lastIndexOf(".");
+    if (dotIndex > 0 && dotIndex < fileName.length() - 1) {
+      return fileName.substring(dotIndex);
+    }
+    return "";
+  }
+
+  @GetMapping("/{id}")
+  public Product buscarPorId(@PathVariable(required = true) Integer id) {
+    Product producto = productoService.listarPorId(id).get();
+    producto.setCategoria(producto.getCategoria());
+    return producto;
+  }
+
+  @PutMapping("/imagen/{id}")
+  public ResponseEntity<String> actualizar(@PathVariable("id") Integer id,
+      @RequestParam(value = "nombre", required = false) String nombre,
+      @RequestParam(value = "file", required = false) MultipartFile file,
+      @ModelAttribute Product producto) {
+
+    Optional<Product> imagenExistente = productoService.listarPorId(id);
+    if (!imagenExistente.isPresent()) {
+      return ResponseEntity.notFound().build();
     }
 
-    private boolean isValidImageExtension(String fileExtension) {
-        return fileExtension.equalsIgnoreCase(".png") ||
-                fileExtension.equalsIgnoreCase(".jpg") ||
-                fileExtension.equalsIgnoreCase(".jpeg");
-    }
+    Product imagenActual = imagenExistente.get();
 
-    private String getFileExtension(String fileName) {
-        int dotIndex = fileName.lastIndexOf(".");
-        if (dotIndex > 0 && dotIndex < fileName.length() - 1) {
-            return fileName.substring(dotIndex);
-        }
-        return "";
-    }
+    try {
+      if (nombre != null) {
+        imagenActual.setNombre(nombre);
+      }
 
-    @GetMapping("/{id}")
-    public Product buscarPorId(@PathVariable(required = true) Integer id) {
-        Product producto = productoService.listarPorId(id).get();
-        producto.setCategoria(producto.getCategoria());
-        return producto;
-    }
-
-    @PutMapping("/imagen/{id}")
-    public ResponseEntity<String> actualizar(@PathVariable("id") Integer id,
-            @RequestParam(value = "nombre", required = false) String nombre,
-            @RequestParam(value = "file", required = false) MultipartFile file,
-            @ModelAttribute Product producto) {
-
-        Optional<Product> imagenExistente = productoService.listarPorId(id);
-        if (!imagenExistente.isPresent()) {
-            return ResponseEntity.notFound().build();
+      if (file != null && !file.isEmpty()) {
+        String fileExtension = getFileExtension(file.getOriginalFilename());
+        if (!isValidImageExtension(fileExtension)) {
+          return ResponseEntity.badRequest()
+              .body("Solo se permiten archivos con extensiones .png, .jpg y .jpeg");
         }
 
-        Product imagenActual = imagenExistente.get();
+        String filename = UUID.randomUUID().toString();
+        String newFileName = filename + fileExtension;
+        Path filePath = Path.of(UPLOAD_DIR, newFileName);
 
-        try {
-            if (nombre != null) {
-                imagenActual.setNombre(nombre);
-            }
+        String baseUri = ServletUriComponentsBuilder.fromCurrentContextPath().build().toUriString();
 
-            if (file != null && !file.isEmpty()) {
-                String fileExtension = getFileExtension(file.getOriginalFilename());
-                if (!isValidImageExtension(fileExtension)) {
-                    return ResponseEntity.badRequest()
-                            .body("Solo se permiten archivos con extensiones .png, .jpg y .jpeg");
-                }
+        Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+        // Elimina el archivo de imagen existente solo si se ha copiado el archivo
+        // adjunto con un nuevo nombre
+        deleteImageFile(imagenActual.getImagen());
 
-                String filename = UUID.randomUUID().toString();
-                String newFileName = filename + fileExtension;
-                Path filePath = Path.of(UPLOAD_DIR, newFileName);
+        String fileUrl = baseUri + "/imagenes/" + newFileName;
+        imagenActual.setImagen(fileUrl);
+      }
 
-                String baseUri = ServletUriComponentsBuilder.fromCurrentContextPath().build().toUriString();
+      if (producto.getCategoria() != null) {
+        imagenActual.setCategoria(producto.getCategoria());
+      }
+      if (producto.getPrecio() != null) {
+        imagenActual.setPrecio(producto.getPrecio());
+      }
+      if (producto.getStock() != null) {
+        imagenActual.setStock(producto.getStock());
+      }
+      if (producto.getDetalle() != null) {
+        imagenActual.setDetalle(producto.getDetalle());
+      }
+      if (producto.getMaterial() != null) {
+        imagenActual.setMaterial(producto.getMaterial());
+      }
+      if (producto.getLargo() != null) {
+        imagenActual.setLargo(producto.getLargo());
+      }
+      if (producto.getAncho() != null) {
+        imagenActual.setAncho(producto.getAncho());
+      }
+      if (producto.getAlto() != null) {
+        imagenActual.setAlto(producto.getAlto());
+      }
+      if (producto.getEstado() != null) {
+        imagenActual.setEstado(producto.getEstado());
+      }
 
-                Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
-                // Elimina el archivo de imagen existente solo si se ha copiado el archivo
-                // adjunto con un nuevo nombre
-                deleteImageFile(imagenActual.getImagen());
+      productoService.actualizar(imagenActual);
 
-                String fileUrl = baseUri + "/imagenes/" + newFileName;
-                imagenActual.setImagen(fileUrl);
-            }
+      return ResponseEntity.ok(imagenActual.getImagen());
+    } catch (IOException e) {
+      e.printStackTrace();
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+    }
+  }
 
-            if (producto.getCategoria() != null) {
-                imagenActual.setCategoria(producto.getCategoria());
-            }
-            if (producto.getPrecio() != null) {
-                imagenActual.setPrecio(producto.getPrecio());
-            }
-            if (producto.getStock() != null) {
-                imagenActual.setStock(producto.getStock());
-            }
-            if (producto.getDetalle() != null) {
-                imagenActual.setDetalle(producto.getDetalle());
-            }
-            if (producto.getMaterial() != null) {
-                imagenActual.setMaterial(producto.getMaterial());
-            }
-            if (producto.getLargo() != null) {
-                imagenActual.setLargo(producto.getLargo());
-            }
-            if (producto.getAncho() != null) {
-                imagenActual.setAncho(producto.getAncho());
-            }
-            if (producto.getAlto() != null) {
-                imagenActual.setAlto(producto.getAlto());
-            }
-            if (producto.getEstado() != null) {
-                imagenActual.setEstado(producto.getEstado());
-            }
+  private void deleteImageFile(String imageUrl) {
+    // Extrae el nombre de archivo de la URL
+    String fileName = imageUrl.substring(imageUrl.lastIndexOf("/") + 1);
 
-            productoService.actualizar(imagenActual);
+    // Construye la ruta completa del archivo
+    String filePath = UPLOAD_DIR + "/" + fileName;
 
-            return ResponseEntity.ok(imagenActual.getImagen());
-        } catch (IOException e) {
-            e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
+    // Elimina el archivo de imagen
+    try {
+      Files.deleteIfExists(Paths.get(filePath));
+    } catch (IOException e) {
+      // Maneja cualquier error de eliminación del archivo
+      e.printStackTrace();
+    }
+  }
+
+  @DeleteMapping("/{id}")
+  public ResponseEntity<String> eliminar(@PathVariable(required = true) Integer id) throws IOException {
+    // Obtener la imagen por su ID
+    Optional<Product> imagenOptional = productoService.listarPorId(id);
+    if (!imagenOptional.isPresent()) {
+      return ResponseEntity.notFound().build();
     }
 
-    private void deleteImageFile(String imageUrl) {
-        // Extrae el nombre de archivo de la URL
-        String fileName = imageUrl.substring(imageUrl.lastIndexOf("/") + 1);
+    // Obtener la imagen y su URL
+    Product imagen = imagenOptional.get();
+    String imageUrl = imagen.getImagen();
 
-        // Construye la ruta completa del archivo
-        String filePath = UPLOAD_DIR + "/" + fileName;
-
-        // Elimina el archivo de imagen
-        try {
-            Files.deleteIfExists(Paths.get(filePath));
-        } catch (IOException e) {
-            // Maneja cualquier error de eliminación del archivo
-            e.printStackTrace();
-        }
+    // Verificar la existencia de la imagen en el sistema de archivos
+    if (!imageExists(imageUrl)) {
+      return ResponseEntity.notFound().build();
     }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<String> eliminar(@PathVariable(required = true) Integer id) throws IOException {
-        // Obtener la imagen por su ID
-        Optional<Product> imagenOptional = productoService.listarPorId(id);
-        if (!imagenOptional.isPresent()) {
-            return ResponseEntity.notFound().build();
-        }
+    // Eliminar el archivo de la carpeta
+    deleteImageFile(imageUrl);
 
-        // Obtener la imagen y su URL
-        Product imagen = imagenOptional.get();
-        String imageUrl = imagen.getImagen();
+    // Eliminar la imagen de la base de datos
+    productoService.eliminarPorId(id);
 
-        // Verificar la existencia de la imagen en el sistema de archivos
-        if (!imageExists(imageUrl)) {
-            return ResponseEntity.notFound().build();
-        }
+    return ResponseEntity.ok("Eliminación correcta");
+  }
 
-        // Eliminar el archivo de la carpeta
-        deleteImageFile(imageUrl);
-
-        // Eliminar la imagen de la base de datos
-        productoService.eliminarPorId(id);
-
-        return ResponseEntity.ok("Eliminación correcta");
-    }
-
-    private boolean imageExists(String imageUrl) {
-        String fileName = imageUrl.substring(imageUrl.lastIndexOf("/") + 1);
-        String filePath = UPLOAD_DIR + "/" + fileName;
-        return Files.exists(Paths.get(filePath));
-    }
+  private boolean imageExists(String imageUrl) {
+    String fileName = imageUrl.substring(imageUrl.lastIndexOf("/") + 1);
+    String filePath = UPLOAD_DIR + "/" + fileName;
+    return Files.exists(Paths.get(filePath));
+  }
 }
