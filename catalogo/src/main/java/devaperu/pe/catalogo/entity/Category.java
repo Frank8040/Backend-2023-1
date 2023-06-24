@@ -13,6 +13,7 @@ public class Category {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
     private String nombre;
+    private String imagen;
     private Estado estado;
 
     public enum Estado {
