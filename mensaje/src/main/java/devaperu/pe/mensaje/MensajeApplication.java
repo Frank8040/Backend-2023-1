@@ -1,8 +1,13 @@
 package devaperu.pe.mensaje;
 
+import java.util.Properties;
+
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.JavaMailSenderImpl;
+
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.info.License;
@@ -22,6 +27,20 @@ public class MensajeApplication {
                 .termsOfService("http://swagger.io/terms")
                 .license(new License().name("Apache 2.0").url("http://springdoc.org"))
         );
+    }
+    @Bean
+    public JavaMailSender javaMailSender() {
+        JavaMailSenderImpl mailSender = new JavaMailSenderImpl();
+        
+        // Configura las propiedades del mailSender, como el host, credenciales, etc.
+        mailSender.setHost("smtp.gmail.com");
+        mailSender.setUsername("martinhilasaca7@gmail.com");
+        mailSender.setPassword("yxjitdpujjsbdvec");
+        
+        Properties props = mailSender.getJavaMailProperties();
+        props.put("mail.smtp.starttls.enable", "true");
+        // Configura otras propiedades, como el protocolo, autenticación, inicio seguro, etc.
+        return mailSender;
     }
 	
 }

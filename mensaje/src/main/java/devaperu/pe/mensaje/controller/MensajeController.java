@@ -12,12 +12,14 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import devaperu.pe.mensaje.entity.Mensaje;
+import devaperu.pe.mensaje.service.EmailSender;
 import devaperu.pe.mensaje.service.MensajeService;
 
 @RestController
 @RequestMapping("/mensaje")
 public class MensajeController {
-
+     @Autowired
+    private EmailSender emailService;
     @Autowired
     private MensajeService ms;
 
@@ -29,6 +31,10 @@ public class MensajeController {
 
     @PostMapping()
     public ResponseEntity<Mensaje> guardar(@RequestBody Mensaje Mensaje) {
+        String destinatario = Mensaje.getCorreo();
+        String asunto = Mensaje.getAsunto();
+        String contenido = Mensaje.getMensaje();
+        emailService.enviarCorreo(destinatario, asunto, contenido);
         return ResponseEntity.ok(ms.save(Mensaje));
     }
     
