@@ -34,7 +34,8 @@ public class MensajeController {
         String destinatario = Mensaje.getCorreo();
         String asunto = Mensaje.getAsunto();
         String contenido = Mensaje.getMensaje();
-        emailService.enviarCorreo(destinatario, asunto, contenido);
+        String telefono = String.valueOf(Mensaje.getTelefono());
+        emailService.enviarCorreo(destinatario, asunto, contenido, telefono);
         return ResponseEntity.ok(ms.save(Mensaje));
     }
     

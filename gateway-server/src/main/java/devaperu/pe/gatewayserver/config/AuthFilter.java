@@ -19,20 +19,24 @@ public class AuthFilter extends AbstractGatewayFilterFactory<AuthFilter.Config> 
         super(Config.class);
         this.webClient = webClient;
     }
+
     @Override
     public GatewayFilter apply(Config config) {
         return (((exchange, chain) -> {
-             String requestPath = exchange.getRequest().getPath().toString();
-                // Verificar si la ruta debe excluirse del filtro
-                if (requestPath.equals("/mensaje") || requestPath.startsWith("/mensaje")) {
-                    // Pasar la solicitud directamente a la siguiente cadena de filtros sin validar la autenticación
-                    return chain.filter(exchange);
+            String requestPath = exchange.getRequest().getPath().toString();
+            String requestMethod = exchange.getRequest().getMethod().name();
+            // Verificar si la ruta debe excluirse del filtro
+            if ((requestPath.equals("/mensaje") || requestPath.startsWith("/mensaje"))
+                    && requestMethod.equals("POST")) {
+                // Pasar la solicitud directamente a la siguiente cadena de filtros sin validar
+                // la autenticación
+                return chain.filter(exchange);
             }
-            if(!exchange.getRequest().getHeaders().containsKey(HttpHeaders.AUTHORIZATION))
+            if (!exchange.getRequest().getHeaders().containsKey(HttpHeaders.AUTHORIZATION))
                 return onError(exchange, HttpStatus.BAD_REQUEST);
             String tokenHeader = exchange.getRequest().getHeaders().get(HttpHeaders.AUTHORIZATION).get(0);
-            String [] chunks = tokenHeader.split(" ");
-            if(chunks.length != 2 || !chunks[0].equals("Bearer"))
+            String[] chunks = tokenHeader.split(" ");
+            if (chunks.length != 2 || !chunks[0].equals("Bearer"))
                 return onError(exchange, HttpStatus.BAD_REQUEST);
             return webClient.build()
                     .post()
@@ -45,12 +49,13 @@ public class AuthFilter extends AbstractGatewayFilterFactory<AuthFilter.Config> 
         }));
     }
 
-    public Mono<Void> onError(ServerWebExchange exchange, HttpStatus status){
+    public Mono<Void> onError(ServerWebExchange exchange, HttpStatus status) {
         ServerHttpResponse response = exchange.getResponse();
         response.setStatusCode(status);
         return ((org.springframework.http.server.reactive.ServerHttpResponse) response).setComplete();
     }
 
-    public static class Config {}
+    public static class Config {
+    }
 
 }
