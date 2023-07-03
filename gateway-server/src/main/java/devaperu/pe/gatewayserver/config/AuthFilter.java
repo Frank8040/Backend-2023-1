@@ -4,6 +4,7 @@ import devaperu.pe.gatewayserver.dto.TokenDto;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.stereotype.Component;
@@ -24,10 +25,17 @@ public class AuthFilter extends AbstractGatewayFilterFactory<AuthFilter.Config> 
     public GatewayFilter apply(Config config) {
         return (((exchange, chain) -> {
             String requestPath = exchange.getRequest().getPath().toString();
-            String requestMethod = exchange.getRequest().getMethod().name();
             // Verificar si la ruta debe excluirse del filtro
-            if ((requestPath.equals("/mensaje") || requestPath.startsWith("/mensaje"))
-                    && requestMethod.equals("POST")) {
+            if (requestPath.equals("/mensaje") && exchange.getRequest().getMethod() == HttpMethod.POST) {
+                // Pasar la solicitud directamente a la siguiente cadena de filtros sin validar
+                // la autenticación
+                return chain.filter(exchange);
+            }
+            
+            HttpMethod requestMethod = exchange.getRequest().getMethod();
+
+            // Verificar si el método de solicitud es GET
+            if (HttpMethod.GET.equals(requestMethod)) {
                 // Pasar la solicitud directamente a la siguiente cadena de filtros sin validar
                 // la autenticación
                 return chain.filter(exchange);
