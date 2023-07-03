@@ -43,6 +43,13 @@ public class ProductController {
     return productos;
   }
 
+  @GetMapping("/{id}")
+  public Product buscarPorId(@PathVariable(required = true) Integer id) {
+    Product producto = productoService.listarPorId(id).get();
+    producto.setCategoria(producto.getCategoria());
+    return producto;
+  }
+
   @PostMapping()
   public ResponseEntity<String> guardar(@ModelAttribute Product producto, @RequestParam("file") MultipartFile file) {
 
@@ -88,13 +95,6 @@ public class ProductController {
       return fileName.substring(dotIndex);
     }
     return "";
-  }
-
-  @GetMapping("/{id}")
-  public Product buscarPorId(@PathVariable(required = true) Integer id) {
-    Product producto = productoService.listarPorId(id).get();
-    producto.setCategoria(producto.getCategoria());
-    return producto;
   }
 
   @PutMapping("/imagen/{id}")
