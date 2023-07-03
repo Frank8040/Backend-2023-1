@@ -4,6 +4,7 @@ import devaperu.pe.gatewayserver.dto.TokenDto;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.stereotype.Component;
@@ -19,20 +20,31 @@ public class AuthFilter extends AbstractGatewayFilterFactory<AuthFilter.Config> 
         super(Config.class);
         this.webClient = webClient;
     }
+
     @Override
     public GatewayFilter apply(Config config) {
         return (((exchange, chain) -> {
-             String requestPath = exchange.getRequest().getPath().toString();
-                // Verificar si la ruta debe excluirse del filtro
-                if (requestPath.equals("/mensaje") || requestPath.startsWith("/mensaje")) {
-                    // Pasar la solicitud directamente a la siguiente cadena de filtros sin validar la autenticación
-                    return chain.filter(exchange);
+            String requestPath = exchange.getRequest().getPath().toString();
+            // Verificar si la ruta debe excluirse del filtro
+            if (requestPath.equals("/mensaje") && exchange.getRequest().getMethod() == HttpMethod.POST) {
+                // Pasar la solicitud directamente a la siguiente cadena de filtros sin validar
+                // la autenticación
+                return chain.filter(exchange);
             }
-            if(!exchange.getRequest().getHeaders().containsKey(HttpHeaders.AUTHORIZATION))
+            
+            HttpMethod requestMethod = exchange.getRequest().getMethod();
+
+            // Verificar si el método de solicitud es GET
+            if (HttpMethod.GET.equals(requestMethod)) {
+                // Pasar la solicitud directamente a la siguiente cadena de filtros sin validar
+                // la autenticación
+                return chain.filter(exchange);
+            }
+            if (!exchange.getRequest().getHeaders().containsKey(HttpHeaders.AUTHORIZATION))
                 return onError(exchange, HttpStatus.BAD_REQUEST);
             String tokenHeader = exchange.getRequest().getHeaders().get(HttpHeaders.AUTHORIZATION).get(0);
-            String [] chunks = tokenHeader.split(" ");
-            if(chunks.length != 2 || !chunks[0].equals("Bearer"))
+            String[] chunks = tokenHeader.split(" ");
+            if (chunks.length != 2 || !chunks[0].equals("Bearer"))
                 return onError(exchange, HttpStatus.BAD_REQUEST);
             return webClient.build()
                     .post()
@@ -45,12 +57,13 @@ public class AuthFilter extends AbstractGatewayFilterFactory<AuthFilter.Config> 
         }));
     }
 
-    public Mono<Void> onError(ServerWebExchange exchange, HttpStatus status){
+    public Mono<Void> onError(ServerWebExchange exchange, HttpStatus status) {
         ServerHttpResponse response = exchange.getResponse();
         response.setStatusCode(status);
         return ((org.springframework.http.server.reactive.ServerHttpResponse) response).setComplete();
     }
 
-    public static class Config {}
+    public static class Config {
+    }
 
 }

@@ -11,15 +11,19 @@ import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Component
 public class JwtProvider {
     @Value("${jwt.secret}")
     private String secret;
+    private Set<String> invalidTokens;
 
     @PostConstruct
     protected void init() {
         secret = Base64.getEncoder().encodeToString(secret.getBytes());
+        invalidTokens = ConcurrentHashMap.newKeySet();
     }
 
     public String createToken(AuthUser authUser) {
@@ -51,5 +55,9 @@ public class JwtProvider {
         } catch (Exception e) {
             return "bad token";
         }
+    }
+
+    public void addToInvalidTokens(String token) {
+        invalidTokens.add(token);
     }
 }

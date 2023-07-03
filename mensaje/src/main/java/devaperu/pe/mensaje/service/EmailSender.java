@@ -11,11 +11,12 @@ public class EmailSender {
     @Autowired
     private JavaMailSender javaMailSender;
 
-    public void enviarCorreo(String destinatario, String asunto, String contenido) {
+    public void enviarCorreo(String destinatario, String asunto, String contenido, String telefono) {
+         String mensajeCompleto = contenido + "\nTeléfono: " + telefono;
         SimpleMailMessage mensaje = new SimpleMailMessage();
         mensaje.setTo(destinatario);
         mensaje.setSubject(asunto);
-        mensaje.setText(contenido);
+        mensaje.setText(mensajeCompleto);
         javaMailSender.send(mensaje);
     }
 }

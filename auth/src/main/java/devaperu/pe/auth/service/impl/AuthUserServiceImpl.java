@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -23,6 +24,16 @@ public class AuthUserServiceImpl implements AuthUserService {
     JwtProvider jwtProvider;
 
     @Override
+    public List<AuthUser> list() {
+        return authRepository.findAll();
+    }
+
+    @Override
+    public Optional<AuthUser> listarPorId(Integer id) {
+        return authRepository.findById(id);
+    }
+
+    @Override
     public AuthUser save(AuthUserDto authUserDto) {
         Optional<AuthUser> user = authRepository.findByUserName(authUserDto.getUserName());
         if (user.isPresent())
@@ -31,6 +42,7 @@ public class AuthUserServiceImpl implements AuthUserService {
         AuthUser authUser = AuthUser.builder()
                 .userName(authUserDto.getUserName())
                 .password(password)
+                .correo(authUserDto.getCorreo())
                 .build();
 
         return authRepository.save(authUser);
@@ -44,6 +56,16 @@ public class AuthUserServiceImpl implements AuthUserService {
         if (passwordEncoder.matches(authUserDto.getPassword(), user.get().getPassword()))
             return new TokenDto(jwtProvider.createToken(user.get()));
         return null;
+    }
+
+    @Override
+    public void logout(String token) {
+        if (jwtProvider.validate(token)) {
+            jwtProvider.addToInvalidTokens(token);
+            System.out.println("Token invalidado y agregado a la lista de tokens inválidos: " + token);
+        } else {
+            System.out.println("Token inválido: " + token);
+        }
     }
 
     @Override
