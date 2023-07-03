@@ -1,8 +1,11 @@
 package devaperu.pe.venta.controller;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -10,8 +13,10 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import devaperu.pe.venta.dto.Producto;
 import devaperu.pe.venta.entity.Venta;
 import devaperu.pe.venta.service.VentaService;
 
@@ -19,31 +24,50 @@ import devaperu.pe.venta.service.VentaService;
 @RestController
 @RequestMapping("/venta")
 public class VentaController {
-    @Autowired
+    private List<Producto> productList;
+     @Autowired
     private VentaService ventaService;
 
     @GetMapping()
-    public List<Venta> listar() {
-        return ventaService.listar();
+    public ResponseEntity<List<Venta>> list() {
+        return ResponseEntity.ok().body(ventaService.listar());
     }
 
     @PostMapping()
-    public Venta guardar(@RequestBody Venta venta) {
-        return ventaService.guardar(venta);
-    }
-
-    @GetMapping("/{id}")
-    public Venta buscarPorId(@PathVariable(required = true) Integer id) {
-        return ventaService.listarPorId(id).get();
+    public ResponseEntity<Venta> save(@RequestBody Venta venta) {
+        return ResponseEntity.ok(ventaService.guardar(venta));
     }
 
     @PutMapping()
-    public Venta actualizar(@RequestBody Venta venta) {
-        return ventaService.actualizar(venta);
+    public ResponseEntity<Venta> update(@RequestBody Venta venta) {
+        return ResponseEntity.ok(ventaService.actualizar(venta));
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<Venta> listById(@PathVariable(required = true) Integer id) {
+        return ResponseEntity.ok().body(ventaService.listarPorId(id).get());
     }
 
     @DeleteMapping("/{id}")
-    public void eliminarPorId(@PathVariable(required = true) Integer id) {
+    public String deleteById(@PathVariable(required = true) Integer id) {
         ventaService.eliminarPorId(id);
+        return "Eliminacion Correcta";
     }
+
+     @GetMapping("/buscarProducto")
+    public String searchProduct(@RequestParam("keyword") String keyword, Model model) {
+        List<Producto> matchingProducts = new ArrayList<>();
+
+        for (Producto product : productList) {
+            if (product.getNombre().toLowerCase().contains(keyword.toLowerCase())) {
+                matchingProducts.add(product);
+            }
+        }
+
+        model.addAttribute("products", matchingProducts);
+        model.addAttribute("keyword", keyword);
+
+        return "search-results";
+    }
+
 }
