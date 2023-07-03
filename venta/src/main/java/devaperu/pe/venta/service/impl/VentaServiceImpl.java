@@ -46,12 +46,12 @@ public class VentaServiceImpl implements VentaService{
     public Optional<Venta> listarPorId(Integer id) {
         Venta venta = ventaRepository.findById(id).get();
 
-        Usuario usuario = usuarioFeign.listById(venta.getUsuarioId()).getBody();
+        Usuario cliente = usuarioFeign.listById(venta.getUsuarioId()).getBody();
         List<VentaDetalle> ventaDetalles = venta.getDetalle().stream().map(ventaDetalle -> {
             System.out.println(ventaDetalle.toString());
-            //System.out.println("Antes de la peticion");
+            System.out.println("Antes de la peticion");
             Producto producto = productoFeign.listById(ventaDetalle.getProductoId()).getBody();
-            //System.out.println("Despues de la peticion");
+            System.out.println("Despues de la peticion");
             System.out.println(producto.toString());
             System.out.println(producto.getNombre());
             ventaDetalle.setProducto(producto);
@@ -59,10 +59,9 @@ public class VentaServiceImpl implements VentaService{
         }).collect(Collectors.toList());
         venta.setDetalle(ventaDetalles);
 
-        venta.setUsuario(usuario);
+        venta.setUsuario(cliente);
         return Optional.of(venta);
     }
-
     @Override
     public void eliminarPorId(Integer id) {
         ventaRepository.deleteById(id);
